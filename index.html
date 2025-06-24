@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptimaAI: Interactive Campaign Plan</title>
+    <!-- Chosen Palette: Energetic Red & Warm Neutrals -->
+    <!-- Application Structure Plan: A dashboard-style SPA with a fixed top navigation bar. The top-bar is icon-only for a clean look, expanding on hover to reveal section titles. This saves vertical space. Key sections now use modals to provide deeper, on-demand information (monthly plans, ad details), preventing information overload on the main screen. This layered approach allows users to see the high-level strategy and then drill down into specifics without leaving their current view, making the complex plan more manageable and explorable. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Market Opportunity (Internet/Freelancer/SMB stats) -> Goal: Inform -> Viz: Doughnut Chart (Chart.js) -> Interaction: Hover -> Justification: Provides a quick, visual snapshot of the addressable digital market in Bangladesh, making the opportunity more tangible than just text.
+        - Report Info: Monthly Campaign Plans -> Goal: Organize -> Viz: Clickable Cards opening a Modal with a structured weekly calendar view -> Interaction: Click -> Justification: The main dashboard shows the high-level monthly focus. A modal reveals the granular weekly content calendar only when requested, keeping the main roadmap view clean and easy to scan. The calendar-style layout makes the dense schedule easy to follow.
+        - Report Info: Detailed Ad Parameters -> Goal: Organize/Inform -> Viz: Clickable Cards opening a Modal -> Interaction: Click -> Justification: Similar to the roadmap, this shows a gallery of ads. The modal provides the deep technical details (budget, targeting, etc.) for users who need that level of information, such as a media buyer.
+        - Report Info: Customer Growth Projection -> Goal: Inform/Compare -> Viz: Line Chart (Chart.js) -> Interaction: Hover -> Justification: Visually tracks the projected growth of paying customers against the 1,000-customer goal, clearly illustrating the campaign's expected trajectory and ramp-up over 6 months.
+        - Library/Method: Chart.js for all canvas-based charts. Vanilla JS for state management and DOM manipulation (including modals). Tailwind CSS for layout and styling. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 320px; max-height: 450px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .nav-link.active { background-color: #FEE2E2; color: #B91C1C; }
+        .persona-btn.active { border-color: #DC2626; background-color: #FEF2F2; color: #DC2626; }
+        .content-hidden { display: none; }
+        .fade-in { animation: fadeIn 1.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-item .nav-text { max-width: 0; opacity: 0; transition: max-width 0.4s ease-out, opacity 0.2s ease-out, margin-left 0.4s ease-out; display: inline-block; white-space: nowrap; vertical-align: middle; }
+        .nav-item:hover .nav-text { max-width: 150px; opacity: 1; margin-left: 0.75rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content { background: white; padding: 2rem; border-radius: 1rem; max-width: 90%; width: 800px; max-height: 90vh; overflow-y: auto; transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .pulsing-icon { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* Preloader Styles */
+        #preloader {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #c80a00;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1.6s ease-in-out, visibility 2.6s ease-in-out;
+        }
+        #preloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .header-logo path, .header-logo polygon { fill: #c80a00; }
+        .preloader-logo path, .preloader-logo polygon { fill: #ffffff; }
+
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pt-20">
+    <div id="preloader">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1225.57 304.57" class="h-24 preloader-logo"><g id="Layer_2-preloader" data-name="Layer 2"><g id="Layer_1-2-preloader" data-name="Layer 1"><path d="M158.81,258.87c-5.05-13.13-14.26-21.94-27.79-25.94-10.82-3.2-21.72-6.12-32.59-9.17C86.7,220.48,75,217,63.2,214c-10.5-2.66-20.78-1.64-30.35,3.82a43.76,43.76,0,0,0-19.4,22.89c-.72,1.86-1.88,3.38.17,5.49,16.39,16.79,36,28.28,58,36a153.44,153.44,0,0,0,34.62,7.74c17,1.79,33.85,1.11,50.51-3a4.45,4.45,0,0,0,3.8-4.11C161.86,274.62,161.8,266.63,158.81,258.87Z"/><path d="M95.68,53.58a113.76,113.76,0,0,1,23.14,3.59C134.55,61.5,150.24,66,166,70.35c3.89,1.09,7.62,2.62,11.38,4.08,4.37,1.7,8.51,3.91,12.95,6a21.19,21.19,0,0,0-14.77-24.08c-7-2.09-14.1-4-21.18-6-2.06-.55-2.66-1.55-2-3.58,1-3.3,2-6.63,2.77-10a4.1,4.1,0,0,1,3.68-3.53C166,31.77,170.47,27.16,172,19.94c1.35-6.23-1.72-13.32-7.31-16.94-6-3.92-12.3-4-18.38-.19C137,8.7,135.88,21,144,29.19a3.62,3.62,0,0,1,1.09,4.13c-1,3.3-1.89,6.66-2.83,10s-1.08,3.35-4.26,2.47c-6.83-1.88-13.63-3.91-20.5-5.65A21.51,21.51,0,0,0,93.89,50.6C92.43,53.34,92.45,53.37,95.68,53.58Z"/><path d="M13.75,119.46c2.46-7.93,4.06-16.13,7.2-23.86.52-1.28.82-2.37-1.35-2.28-6.26.27-12.89,5.15-14.68,11.14C3.31,109.82,1.77,115.2.4,120.63c-1.84,7.26,2.89,16.3,10.11,19.2A79.18,79.18,0,0,1,13.75,119.46Z"/><path d="M239,169.62c1.66-6.39-1.73-14.42-7.33-17.87-1.19-.73-1.81-.79-2,.85-.78,6.5-3.23,12.59-4.44,17.73-1.48,5.3-2.67,9.41-3.78,13.55a53.48,53.48,0,0,1-5.11,11.74c-.95,1.73.33,1.54,1.26,1.6,7,.46,14.9-4.89,16.94-11.65Q236.93,177.64,239,169.62Z"/><path d="M218.29,134.87c-6.52-27.48-24-45.19-50.38-53.79-18.08-5.89-36.55-10.64-55-15.45a76.74,76.74,0,0,0-39.35-.26c-18.42,4.87-33.08,14.9-42.25,32-4.28,8-6.11,16.85-8.36,25.53s-3.15,17.73-1.26,26.67c5.83,27.5,22.76,45.24,49,54.22,9.89,3.38,20.12,5.74,30.2,8.57,1.43.4,2.85.82,4.28,1.19,10.37,2.68,20.46,6.4,31,8.25,19.09,3.32,36.73-.64,52.66-11.55,11.17-7.65,19.42-17.74,23.35-30.93,2.07-6.95,4-13.95,5.83-21A47.62,47.62,0,0,0,218.29,134.87ZM62.17,114A19.56,19.56,0,1,1,75.7,138.31,19.7,19.7,0,0,1,62.17,114Zm84.22,66.3a43.1,43.1,0,0,1-13.73,6,46.25,46.25,0,0,1-24.89-.51c-12.67-3.65-22.5-10.95-28.91-22.63a11.79,11.79,0,0,1-1.41-3.67,5.69,5.69,0,0,1,3.31-6.48,5.43,5.43,0,0,1,6.66,2.79,35.1,35.1,0,0,0,17.83,16.71c11.41,4.94,22.81,5.23,34-.8.51-.27,1-.59,1.5-.86,3-1.6,6.1-1,7.67,1.43A5.8,5.8,0,0,1,146.39,180.34ZM160.08,162a19.56,19.56,0,0,1-13.39-23.89,19.43,19.43,0,1,1,37.43,10.41A19.54,19.54,0,0,1,160.08,162Z"/><path d="M330.35,269.32c-41.7,0-75.67-34.82-75.67-77.6-.43-42.34,33.32-77.16,75.67-77.59,41.48,0,75.44,34.6,75.44,77.59C405.79,234.5,371.83,269.32,330.35,269.32Zm0-124.24a46.69,46.69,0,0,0,0,93.29c24.5,0,44.49-20.85,44.49-46.65A45.74,45.74,0,0,0,330.35,145.08Z"/><path d="M541.85,174.53a61.37,61.37,0,0,1-53.52,92.21A61.82,61.82,0,0,1,457,258.36v46.21H426V148.3h31v4.09A62.41,62.41,0,0,1,488.33,144,60.84,60.84,0,0,1,541.85,174.53ZM519.5,205.48C519.5,188.72,506,175,489.4,175a30.42,30.42,0,1,0,30.1,30.52Z"/><path d="M631.7,179H599.88v43c.22,2.15,1.72,13.76,26,13.76h5.81v31h-5.81c-44.92,0-57-29.23-57-44.71V118.21h31v29.88H631.7Z"/><path d="M677.9,157.55a29.16,29.16,0,0,1,8.6,21.28v87.91h-31V179.9h-4.73V149h5.8A30,30,0,0,1,677.9,157.55Zm-22.78-12.9V116.49h31.81v28.16Z"/><path d="M711.86,148.52h26l3.23,7.74a33.47,33.47,0,0,1,17.84-8.39c18-2.36,30.52,11.83,31.59,13.12a44.75,44.75,0,0,1,31.6-13.12c26,0,47.08,22.57,47.08,50.3v68.57h-31V198.17c0-10.75-7.31-19.34-16.12-19.34S806,187.42,806,198.17v68.57h-31V198.17c0-10.75-7.1-19.34-16.12-19.34-8.82,0-16.13,8.59-16.13,19.34v68.57H711.86Z"/><path d="M1016.23,235.57v31h-5.81a27.6,27.6,0,0,1-23.86-11.83,62.57,62.57,0,0,1-36.75,12,61.91,61.91,0,1,1,62.12-61.26v30.09ZM981,205.48a30.52,30.52,0,1,0-31.16,30.31A30.87,30.87,0,0,0,981,205.48Z"/><path d="M1125.41,219h-47.07l-18.7,47.72h-33.32l54.38-136.28a22.35,22.35,0,0,1,41.7-.21l55.25,136.49h-33.54Zm-12.68-31-11-26.87-11,26.87Z"/><polygon points="1194.62 115.41 1194.41 266.74 1225.36 266.74 1225.57 115.41 1194.62 115.41"/></g></g></svg>
+    </div>
+
+    <header class="bg-white border-b border-slate-200 p-2 fixed top-0 left-0 w-full z-40">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center pl-2">
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1225.57 304.57" class="h-8 header-logo"><g id="Layer_2-header" data-name="Layer 2"><g id="Layer_1-2-header" data-name="Layer 1"><path d="M158.81,258.87c-5.05-13.13-14.26-21.94-27.79-25.94-10.82-3.2-21.72-6.12-32.59-9.17C86.7,220.48,75,217,63.2,214c-10.5-2.66-20.78-1.64-30.35,3.82a43.76,43.76,0,0,0-19.4,22.89c-.72,1.86-1.88,3.38.17,5.49,16.39,16.79,36,28.28,58,36a153.44,153.44,0,0,0,34.62,7.74c17,1.79,33.85,1.11,50.51-3a4.45,4.45,0,0,0,3.8-4.11C161.86,274.62,161.8,266.63,158.81,258.87Z"/><path d="M95.68,53.58a113.76,113.76,0,0,1,23.14,3.59C134.55,61.5,150.24,66,166,70.35c3.89,1.09,7.62,2.62,11.38,4.08,4.37,1.7,8.51,3.91,12.95,6a21.19,21.19,0,0,0-14.77-24.08c-7-2.09-14.1-4-21.18-6-2.06-.55-2.66-1.55-2-3.58,1-3.3,2-6.63,2.77-10a4.1,4.1,0,0,1,3.68-3.53C166,31.77,170.47,27.16,172,19.94c1.35-6.23-1.72-13.32-7.31-16.94-6-3.92-12.3-4-18.38-.19C137,8.7,135.88,21,144,29.19a3.62,3.62,0,0,1,1.09,4.13c-1,3.3-1.89,6.66-2.83,10s-1.08,3.35-4.26,2.47c-6.83-1.88-13.63-3.91-20.5-5.65A21.51,21.51,0,0,0,93.89,50.6C92.43,53.34,92.45,53.37,95.68,53.58Z"/><path d="M13.75,119.46c2.46-7.93,4.06-16.13,7.2-23.86.52-1.28.82-2.37-1.35-2.28-6.26.27-12.89,5.15-14.68,11.14C3.31,109.82,1.77,115.2.4,120.63c-1.84,7.26,2.89,16.3,10.11,19.2A79.18,79.18,0,0,1,13.75,119.46Z"/><path d="M239,169.62c1.66-6.39-1.73-14.42-7.33-17.87-1.19-.73-1.81-.79-2,.85-.78,6.5-3.23,12.59-4.44,17.73-1.48,5.3-2.67,9.41-3.78,13.55a53.48,53.48,0,0,1-5.11,11.74c-.95,1.73.33,1.54,1.26,1.6,7,.46,14.9-4.89,16.94-11.65Q236.93,177.64,239,169.62Z"/><path d="M218.29,134.87c-6.52-27.48-24-45.19-50.38-53.79-18.08-5.89-36.55-10.64-55-15.45a76.74,76.74,0,0,0-39.35-.26c-18.42,4.87-33.08,14.9-42.25,32-4.28,8-6.11,16.85-8.36,25.53s-3.15,17.73-1.26,26.67c5.83,27.5,22.76,45.24,49,54.22,9.89,3.38,20.12,5.74,30.2,8.57,1.43.4,2.85.82,4.28,1.19,10.37,2.68,20.46,6.4,31,8.25,19.09,3.32,36.73-.64,52.66-11.55,11.17-7.65,19.42-17.74,23.35-30.93,2.07-6.95,4-13.95,5.83-21A47.62,47.62,0,0,0,218.29,134.87ZM62.17,114A19.56,19.56,0,1,1,75.7,138.31,19.7,19.7,0,0,1,62.17,114Zm84.22,66.3a43.1,43.1,0,0,1-13.73,6,46.25,46.25,0,0,1-24.89-.51c-12.67-3.65-22.5-10.95-28.91-22.63a11.79,11.79,0,0,1-1.41-3.67,5.69,5.69,0,0,1,3.31-6.48,5.43,5.43,0,0,1,6.66,2.79,35.1,35.1,0,0,0,17.83,16.71c11.41,4.94,22.81,5.23,34-.8.51-.27,1-.59,1.5-.86,3-1.6,6.1-1,7.67,1.43A5.8,5.8,0,0,1,146.39,180.34ZM160.08,162a19.56,19.56,0,0,1-13.39-23.89,19.43,19.43,0,1,1,37.43,10.41A19.54,19.54,0,0,1,160.08,162Z"/><path d="M330.35,269.32c-41.7,0-75.67-34.82-75.67-77.6-.43-42.34,33.32-77.16,75.67-77.59,41.48,0,75.44,34.6,75.44,77.59C405.79,234.5,371.83,269.32,330.35,269.32Zm0-124.24a46.69,46.69,0,0,0,0,93.29c24.5,0,44.49-20.85,44.49-46.65A45.74,45.74,0,0,0,330.35,145.08Z"/><path d="M541.85,174.53a61.37,61.37,0,0,1-53.52,92.21A61.82,61.82,0,0,1,457,258.36v46.21H426V148.3h31v4.09A62.41,62.41,0,0,1,488.33,144,60.84,60.84,0,0,1,541.85,174.53ZM519.5,205.48C519.5,188.72,506,175,489.4,175a30.42,30.42,0,1,0,30.1,30.52Z"/><path d="M631.7,179H599.88v43c.22,2.15,1.72,13.76,26,13.76h5.81v31h-5.81c-44.92,0-57-29.23-57-44.71V118.21h31v29.88H631.7Z"/><path d="M677.9,157.55a29.16,29.16,0,0,1,8.6,21.28v87.91h-31V179.9h-4.73V149h5.8A30,30,0,0,1,677.9,157.55Zm-22.78-12.9V116.49h31.81v28.16Z"/><path d="M711.86,148.52h26l3.23,7.74a33.47,33.47,0,0,1,17.84-8.39c18-2.36,30.52,11.83,31.59,13.12a44.75,44.75,0,0,1,31.6-13.12c26,0,47.08,22.57,47.08,50.3v68.57h-31V198.17c0-10.75-7.31-19.34-16.12-19.34S806,187.42,806,198.17v68.57h-31V198.17c0-10.75-7.1-19.34-16.12-19.34-8.82,0-16.13,8.59-16.13,19.34v68.57H711.86Z"/><path d="M1016.23,235.57v31h-5.81a27.6,27.6,0,0,1-23.86-11.83,62.57,62.57,0,0,1-36.75,12,61.91,61.91,0,1,1,62.12-61.26v30.09ZM981,205.48a30.52,30.52,0,1,0-31.16,30.31A30.87,30.87,0,0,0,981,205.48Z"/><path d="M1125.41,219h-47.07l-18.7,47.72h-33.32l54.38-136.28a22.35,22.35,0,0,1,41.7-.21l55.25,136.49h-33.54Zm-12.68-31-11-26.87-11,26.87Z"/><polygon points="1194.62 115.41 1194.41 266.74 1225.36 266.74 1225.57 115.41 1194.62 115.41"/></g></g></svg>
+            </div>
+            <nav id="desktop-nav" class="flex items-center space-x-2">
+                <a href="#overview" class="nav-link nav-item flex items-center p-2.5 text-slate-600 rounded-full hover:bg-slate-100 transition-all duration-200 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    <span class="nav-text font-semibold">Overview</span>
+                </a>
+                <a href="#audience" class="nav-link nav-item flex items-center p-2.5 text-slate-600 rounded-full hover:bg-slate-100 transition-all duration-200 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span class="nav-text font-semibold">Audience</span>
+                </a>
+                <a href="#roadmap" class="nav-link nav-item flex items-center p-2.5 text-slate-600 rounded-full hover:bg-slate-100 transition-all duration-200 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span class="nav-text font-semibold">Roadmap</span>
+                </a>
+                <a href="#creatives" class="nav-link nav-item flex items-center p-2.5 text-slate-600 rounded-full hover:bg-slate-100 transition-all duration-200 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span class="nav-text font-semibold">Creatives</span>
+                </a>
+                <a href="#financials" class="nav-link nav-item flex items-center p-2.5 text-slate-600 rounded-full hover:bg-slate-100 transition-all duration-200 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <span class="nav-text font-semibold">Financials</span>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-8">
+        <section id="overview" class="content-section"></section>
+        <section id="audience" class="content-section content-hidden"></section>
+        <section id="roadmap" class="content-section content-hidden"></section>
+        <section id="creatives" class="content-section content-hidden"></section>
+        <section id="financials" class="content-section content-hidden"></section>
+    </main>
+
+    <div id="modal" class="modal-overlay">
+        <div id="modal-content" class="modal-content"></div>
+        <div id="modal-close" class="absolute top-4 right-4 text-white text-4xl cursor-pointer">&times;</div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const preloader = document.getElementById('preloader');
+        window.addEventListener('load', () => {
+            if(preloader) {
+                preloader.classList.add('hidden');
+                setTimeout(() => {
+                    preloader.style.display = 'none';
+                }, 600); 
+            }
+        });
+
+        const data = {
+            overview: {
+                title: "Campaign Overview",
+                intro: "A high-level summary of the OptimaAI launch campaign in Bangladesh including the core mission, key business objectives, and the strategic financial targets that will guide all marketing activities over the next six months.",
+                stats: [
+                    { label: "Paying Customers Goal", value: "1,000", sub: "by Dec 31, 2025" },
+                    { label: "Target Monthly Recurring Revenue", value: "30 Lakh BDT", sub: "from Jan 2026" },
+                    { label: "Total 6-Month Ad Budget", value: "50 Lakh BDT", sub: "for Meta Platforms" },
+                    { label: "Target Customer Acquisition Cost", value: "5,000 BDT", sub: "Derived KPI" }
+                ],
+                marketOpportunity: `
+                    <h3 class="text-xl font-bold text-slate-800 mb-3">The Digital Market Opportunity in Bangladesh</h3>
+                    <p class="text-slate-600 mb-4">Bangladesh's digital landscape is experiencing explosive growth, creating a powerful tailwind for a product like OptimaAI. The market is not just growing; it's maturing. With over <strong class="text-red-600">139 million internet subscribers</strong> and <strong class="text-red-600">190 million mobile connections</strong> as of early 2024, digital access is nearly ubiquitous. This isn't just about connectivity; it's about a fundamental shift in how people work, learn, and do business.</p>
+                    <p class="text-slate-600">This digital surge has created a new generation of ambitious individuals—our target personas—who face modern productivity challenges. The freelance economy, a key target, is now valued at over <strong class="text-red-600">$1 billion annually</strong>, with an estimated <strong class="text-red-600">1 million active freelancers</strong> competing globally. Simultaneously, the nation's <strong class="text-red-600">7.8 million Cottage, Micro, Small, and Medium Enterprises (CMSMEs)</strong> are increasingly moving online, seeking affordable tools to digitize their operations. OptimaAI directly addresses the needs of this vast, digitally-active population seeking an edge.</p>`,
+                marketVisual: {
+                    title: "Bangladesh Digital Landscape (2024)",
+                    chartData: {
+                        labels: ['Internet Users (M)', 'Active Freelancers (M)', 'CMSMEs (M)'],
+                        datasets: [{
+                            label: 'Market Size',
+                            data: [139, 1, 7.8],
+                            backgroundColor: ['#FCA5A5', '#F87171', '#EF4444'],
+                            hoverOffset: 4
+                        }]
+                    }
+                }
+            },
+            audience: {
+                title: "Target Audience Insights",
+                intro: "A deep understanding of our users is critical for success. This section breaks down the three core audience segments for the OptimaAI campaign. Use the buttons below to explore the detailed personas, including their pain points, digital behaviors, and the specific 'job' they would hire OptimaAI to do.",
+                personas: {
+                    student: { name: "Anika, 21, Dhaka", title: "The Ambitious Student", details: [{ icon: '🎓', label: 'Pain Points', text: 'Overwhelmed by notes and assignments, poor time management, exam stress, and worries about building a strong CV.' }, { icon: '📱', label: 'Digital Behavior', text: 'Active on Facebook, Instagram (Reels), and WhatsApp. Follows university groups and educational creators.' }, { icon: '💡', label: 'Job-to-be-Done', text: 'Needs a tool to "study smarter, not harder" by summarizing documents, organizing notes, and creating essay outlines efficiently.' }]},
+                    freelancer: { name: "Rahim, 28, Chattogram", title: "The Growth-Hacking Freelancer", details: [{ icon: '💼', label: 'Pain Points', text: 'Juggling multiple clients, administrative overload (proposals, emails), creative blocks, and finding new leads.' }, { icon: '🌐', label: 'Digital Behavior', text: 'Highly active on LinkedIn and Facebook freelancer groups. Consumes business-focused podcasts and articles.' }, { icon: '🚀', label: 'Job-to-be-Done', text: 'Needs to "automate the back-office" to draft proposals, generate emails, and manage projects, freeing up time to take on more clients.' }]},
+                    smb: { name: "Fatima, 35, Sylhet", title: "The Resourceful SMB Owner", details: [{ icon: '🛒', label: 'Pain Points', text: 'Wears too many hats (marketer, sales, support), lacks budget for a team, struggles to create content, and spends hours on repetitive customer inquiries.' }, { icon: '💬', label: 'Digital Behavior', text: 'Manages business via Facebook/Instagram on her phone. Active in SME support groups. Heavy user of Messenger for business.' }, { icon: '📈', label: 'Job-to-be-Done', text: 'Needs to "grow her business without growing her team" by using an affordable virtual assistant for content creation and customer service.' }]}
+                }
+            },
+            roadmap: {
+                title: "6-Month Campaign Roadmap",
+                timeline: [
+                    { month: 'Month 1 (July)', focus: 'Aware', objective: 'Maximize reach & introduce the brand.', kpis: 'Reach, Impressions, Video Views', details: [
+                        { week: 1, posts: [
+                            { day: 'Mon', title: 'Brand Intro Video', caption: 'অপটিমা এআই: আপনার নতুন শক্তি। Introducing OptimaAI! We are here to help students, freelancers, and small businesses in Bangladesh work smarter. #OptimaAI #Bangladesh' },
+                            { day: 'Wed', title: 'Student Pain Point Carousel', caption: 'নোট গোছানো এখন কত সহজ! Swipe to see how OptimaAI turns messy notes into clean summaries. পরীক্ষার আগের রাতের টেনশন শেষ! #StudySmart' },
+                            { day: 'Fri', title: 'Freelancer Tip Graphic', caption: 'ক্লায়েন্টের মন জয় করার ৩টি ইমেইল টিপস। 3 Email Tips to Win Clients. Follow us for more hacks! #FreelanceHacks' },
+                        ]},
+                        { week: 2, posts: [
+                            { day: 'Mon', title: 'SMB Pain Point Video', caption: 'ব্যবসার সব কাজ একা সামলানো কঠিন? OptimaAI can automate your customer replies. #SMBSuccess' },
+                            { day: 'Wed', title: 'AI in Action: Summarizer', caption: '২০ পেইজের PDF এখন ১ পেইজে! See how our AI summarizer saves you hours of reading. #Productivity' },
+                            { day: 'Fri', title: 'Brand Story: Our Mission', caption: 'Why did we build OptimaAI? To empower the next generation of Bangladeshi talent. #MadeForBangladesh' },
+                        ]},
+                        { week: 3, posts: [
+                            { day: 'Mon', title: 'Student Tip Graphic', caption: 'Time Management for students. Use the Pomodoro Technique! #StudentLife' },
+                            { day: 'Wed', title: 'Freelancer "Day in the Life" Reel', caption: 'From morning coffee to client deadlines, see how freelancers can use OptimaAI all day.' },
+                            { day: 'Fri', title: 'Community Question', caption: 'What is your biggest productivity challenge? কমেন্টে জানান! #Community' },
+                        ]},
+                        { week: 4, posts: [
+                            { day: 'Mon', title: 'SMB "Before & After"', caption: 'Before: Drowning in messages. After: All customer queries handled by our AI Agent. #Automation' },
+                            { day: 'Wed', title: 'AI in Action: Content Writer', caption: 'Need a Facebook post caption? OptimaAI can write it in 5 seconds. #AIpower' },
+                            { day: 'Fri', title: 'Weekend Motivation', caption: 'Rest is part of the work. Have a great weekend! #Motivation' },
+                        ]}
+                    ]},
+                    { month: 'Month 2 (Aug)', focus: 'Aware → Engage', objective: 'Build interaction & deepen problem awareness.', kpis: 'Engagements, Link Clicks, Low CPC', details: [
+                        { week: 1, posts: [
+                            { day: 'Mon', title: 'Engaging Reel (Student)', caption: 'পরীক্ষার আগে সিলেবাস শেষ করার নিনজা টেকনিক! Use OptimaAI to summarize topics faster! #ExamTips' },
+                            { day: 'Wed', title: 'Story Poll (SMB)', caption: 'আপনার ব্যবসার সবচেয়ে বড় চ্যালেঞ্জ কোনটি? (কন্টেন্ট বানানো / কাস্টমার ম্যানেজমেন্ট) Vote now! #SMB' },
+                            { day: 'Fri', title: 'Q&A Post', caption: 'প্রশ্ন-উত্তর পর্ব! Have questions about OptimaAI? Ask us in the comments! #AskOptimaAI' },
+                        ]},
+                        { week: 2, posts: [
+                            { day: 'Mon', title: 'Carousel: Freelancer Myths', caption: 'Myth: AI will take my job. Fact: AI will do my boring tasks. #AIforGood' },
+                            { day: 'Wed', title: 'User-Generated Content Feature', caption: 'We love this comment from Anika! Thanks for sharing how you use OptimaAI. #UserLove' },
+                            { day: 'Fri', title: 'Behind the Scenes', caption: 'Meet our lead Bengali UX designer, Sadia! #Team' },
+                        ]},
+                        { week: 3, posts: [
+                            { day: 'Mon', title: 'Student Challenge', caption: 'Can you summarize this article faster than our AI? Send us your best attempt! #Challenge' },
+                            { day: 'Wed', title: 'SMB Tip of the Week', caption: 'How to write the perfect product description. Tip: Focus on benefits, not just features. #BusinessTips' },
+                            { day: 'Fri', title: 'Blog Post Traffic Ad', caption: '"5 Ways AI Can Help You Avoid Burnout". Read our new article! Link in bio. #WorkLifeBalance' },
+                        ]},
+                        { week: 4, posts: [
+                             { day: 'Mon', title: 'Freelancer Poll', caption: 'What platform do you use most? Upwork, Fiverr, or something else? #FreelanceLife' },
+                             { day: 'Wed', title: 'AI in Action: Email Writer', caption: 'Watch OptimaAI write a professional client follow-up email in seconds. #Efficiency' },
+                             { day: 'Fri', title: 'Live Q&A Announcement', caption: 'Join us next week for a live session with our founder! #LiveEvent' },
+                        ]}
+                    ]},
+                    { month: 'Month 3 (Sep)', focus: 'Engage → Subscribe', objective: 'Capture leads with persona-specific magnets.', kpis: 'Leads, Cost Per Lead (CPL)', details: [
+                        { week: 1, posts: [
+                            { day: 'Mon', title: 'Lead Magnet (Freelancer)', caption: '৫ মিনিটে ক্লায়েন্ট-উইনিং প্রপোজাল। Download our free guide with 5 AI-powered templates. লিঙ্ক বায়োতে। #LeadMagnet' },
+                            { day: 'Wed', title: 'Testimonial Video (Student)', caption: '"অপটিমা এআই আমার সেমিস্টার বাঁচিয়ে দিয়েছে।" Meet Asif from BRAC Uni who aced his mid-terms with OptimaAI. #StudentSuccess' },
+                            { day: 'Fri', title: 'Lead Magnet (Student)', caption: 'আপনার ফাইনাল পরীক্ষার জন্য সেরা চেকলিস্ট। Download our free checklist now! #ExamPrep' },
+                        ]},
+                        { week: 2, posts: [
+                            { day: 'Mon', title: 'Lead Magnet (SMB)', caption: '10 AI Prompts to Automate Your F-commerce Business. Get your free guide! #BusinessAutomation' },
+                            { day: 'Wed', title: 'Webinar Announcement', caption: 'Free Webinar: How to Scale Your Freelance Business with AI tools. Register now! #Webinar' },
+                            { day: 'Fri', title: 'Blog Post: Value', caption: 'Deep dive: How AI summarization works and why it’s better than just reading faster. #AIexplained' },
+                        ]},
+                        { week: 3, posts: [
+                            { day: 'Mon', title: 'Student Testimonial Graphic', caption: '"I saved 5 hours of studying this week!" - Farha, NSU. #Testimonial' },
+                            { day: 'Wed', title: 'Lead Magnet Reminder (Freelancer)', caption: 'Still writing proposals by hand? There’s a better way. Download our free templates. #ProductivityTips' },
+                            { day: 'Fri', title: 'Community Feature', caption: 'Shoutout to the "Digital Marketing in Bangladesh" Facebook group for the great discussion on AI tools! #Community' },
+                        ]},
+                        { week: 4, posts: [
+                             { day: 'Mon', title: 'SMB Case Study Video', caption: 'How "Sylhet Crafts" increased their response time by 90% using our AI Agent. #CaseStudy' },
+                             { day: 'Wed', title: 'Webinar Reminder', caption: 'Don’t miss our free webinar tomorrow! Limited spots left. #FreelanceGrowth' },
+                             { day: 'Fri', title: 'Lead Magnet (All)', caption: 'The Ultimate Guide to AI-Powered Productivity. Download our most comprehensive guide yet! #Ebook' },
+                        ]}
+                    ]},
+                    { month: 'Month 4 (Oct)', focus: 'Subscribe → Convert', objective: 'Nurture leads & drive free product adoption.', kpis: 'App Installs, Free Registrations, CPI', details: [
+                        { week: 1, posts: [
+                            { day: 'Mon', title: 'Direct CTA: Try it Free', caption: 'আপনি কি প্রস্তুত? Ready to see what OptimaAI can do? Sign up for our free plan today. No credit card required. #TryForFree' },
+                            { day: 'Wed', title: 'Feature Deep Dive: AI Agent', caption: 'Our AI Agent isn\'t just a chatbot. It\'s your 24/7 customer service representative. Learn more! #AIAgent' },
+                            { day: 'Fri', title: 'Retargeting Ad (Leads)', caption: 'Thanks for downloading our guide! Now, see those templates in action. Try OptimaAI free. #FreeTrial' },
+                        ]},
+                        { week: 2, posts: [
+                            { day: 'Mon', title: 'User Story: Student', caption: 'How Anika from Dhaka University is using the free plan to ace her classes. #SuccessStory' },
+                            { day: 'Wed', title: 'Objection Handling Carousel', caption: '"Is it hard to use?" Swipe to see how easy it is to set up OptimaAI in 3 simple steps. #EasyAI' },
+                            { day: 'Fri', title: 'App Install Campaign Post', caption: 'আপনার প্রোডাক্টিভিটি পকেটে রাখুন। Carry your productivity in your pocket. Download the OptimaAI app now! #App' },
+                        ]},
+                         { week: 3, posts: [
+                            { day: 'Mon', title: 'Video: Walkthrough', caption: 'A 1-minute tour of the OptimaAI dashboard. See how simple it is to get started. #HowTo' },
+                            { day: 'Wed', title: 'Feature Deep Dive: Proposal Writer', caption: 'For our Freelancers! See how the AI Proposal Writer helps you create winning bids in minutes. #FreelanceSuccess' },
+                            { day: 'Fri', title: 'Direct CTA: Sign up', caption: 'Join hundreds of Bangladeshi students, freelancers and SMBs who are already saving time with OptimaAI. #JoinTheMovement' },
+                        ]},
+                        { week: 4, posts: [
+                            { day: 'Mon', title: 'User Story: SMB Owner', caption: 'Fatima from Sylhet automated 50% of her customer replies in her first week. You can too! #SMBgrowth' },
+                            { day: 'Wed', title: 'Comparison Graphic', caption: 'OptimaAI Free vs. Premium. See what you get and what you could unlock. #Upgrade' },
+                            { day: 'Fri', title: 'App Install Reminder', caption: 'The best way to experience OptimaAI is on your phone. Download our app for iOS and Android. #MobileApp' },
+                        ]}
+                    ]},
+                    { month: 'Month 5 (Nov)', focus: 'Convert', objective: 'Aggressively drive paid conversions from warm audiences.', kpis: 'Paying Customers, CAC, ROAS', details: [
+                        { week: 1, posts: [
+                            { day: 'Mon', title: 'Premium Feature Spotlight', caption: 'Unlock the power of unlimited document summaries with our Premium plan. It\'s a game-changer for finals season! #GoPremium' },
+                            { day: 'Wed', title: 'Testimonial (ROI-focused)', caption: '"I earned back my Premium subscription fee in one project." - Rahim, Freelancer. #ROI' },
+                            { day: 'Fri', title: 'Upgrade Offer (Retargeting)', caption: 'You\'ve been using the free plan for a while. Ready to unlock your full potential? Get 25% off your first month of Premium. #SpecialOffer' },
+                        ]},
+                        { week: 2, posts: [
+                            { day: 'Mon', title: 'Case Study: SMB Growth', caption: 'How "Dhaka Deals" used our Premium AI Agent to increase sales by 15%. Read their story. #CaseStudy' },
+                            { day: 'Wed', title: 'Advanced Tip for Premium Users', caption: 'Did you know you can train your AI Agent with custom responses? A quick tutorial for our power users! #ProTip' },
+                            { day: 'Fri', title: 'Direct Sales Ad', caption: 'Stop letting busywork slow you down. Invest in your productivity. Invest in OptimaAI Premium. আপনার সফলতার জন্য সেরা বিনিয়োগ। #InvestInYourself' },
+                        ]},
+                        { week: 3, posts: [
+                            { day: 'Mon', title: 'Student Testimonial (Results)', caption: '"My GPA went from 3.5 to 3.8 after using OptimaAI Premium for one semester." - Asif, BUET. #Results' },
+                            { day: 'Wed', title: 'Urgency: Limited Time Offer', caption: 'Our 25% discount on the first month of Premium ends this week! Don\'t miss out. #LimitedTime' },
+                            { day: 'Fri', title: 'Feature Comparison', caption: 'OptimaAI vs. Doing it all manually. See how much time you could save each week. #TimeSaver' },
+                        ]},
+                         { week: 4, posts: [
+                            { day: 'Mon', title: 'Freelancer Testimonial (Value)', caption: '"The AI proposal writer alone is worth the price of Premium." #Value' },
+                            { day: 'Wed', title: 'Retargeting: Free Users', caption: 'Hit your usage limit? Unlock unlimited power with Premium and never slow down again. #UpgradeNow' },
+                            { day: 'Fri', title: 'Direct Sales: Final Push', caption: 'The best investment you can make is in yourself. Upgrade to OptimaAI Premium and finish the year strong. #ProductivityBoost' },
+                        ]}
+                    ]},
+                    { month: 'Month 6 (Dec)', focus: 'Convert', objective: 'Maximize customer acquisition with urgency.', kpis: 'Paying Customers, CAC, Trial-to-Paid Rate', details: [
+                        { week: 1, posts: [
+                            { day: 'Mon', title: 'Year-End Offer Announcement', caption: 'Biggest sale of the year! Get 50% OFF your first THREE months of OptimaAI Premium. বছরের সেরা অফার! #YearEndSale' },
+                            { day: 'Wed', title: 'Use Case: Holiday Sales', caption: 'SMB Owners! Use our AI to write all your holiday-themed ad copy and social media posts. #HolidayMarketing' },
+                            { day: 'Fri', title: 'Student Use Case: Finals', caption: 'Don\'t let finals ruin your winter break. Finish your semester strong with OptimaAI. #FinalsWeek' },
+                        ]},
+                        { week: 2, posts: [
+                            { day: 'Mon', title: 'Urgency: Offer Countdown', caption: 'Only 2 weeks left to get 50% off! This offer will not be repeated. Don\'t wait! #FlashSale' },
+                            { day: 'Wed', title: 'Premium Testimonial Carousel', caption: 'See what our first 500 Premium users are saying! Swipe to see real reviews. #SocialProof' },
+                            { day: 'Fri', title: 'Freelancer Use Case: 2026 Planning', caption: 'Use OptimaAI to plan your business goals and content strategy for the new year. #NewYearNewGoals' },
+                        ]},
+                        { week: 3, posts: [
+                            { day: 'Mon', title: 'Final Week Alert!', caption: 'LAST CHANCE! The 50% off mega sale ends this week. Upgrade now before it\'s too late! #LastChance' },
+                            { day: 'Wed', title: 'Feature Spotlight: Analytics', caption: 'Premium users get detailed analytics on their productivity. See where you save the most time! #DataDriven' },
+                            { day: 'Fri', title: 'Retargeting: Cart Abandoners', caption: 'Did you forget something? Complete your upgrade to OptimaAI Premium and lock in your 50% discount. #Reminder' },
+                        ]},
+                        { week: 4, posts: [
+                            { day: 'Mon', title: '72 Hours Left!', caption: 'The clock is ticking! Only 72 hours left for our biggest sale ever. #Countdown' },
+                            { day: 'Wed', title: 'Final Day!', caption: 'TODAY is the last day to get 50% off. Upgrade to Premium and start your new year with an unfair advantage. #FinalDay' },
+                            { day: 'Fri', title: 'Thank You & Happy New Year', caption: 'Thank you to everyone who joined us in 2025. We can\'t wait to help you achieve even more in 2026! Happy New Year! #HNY2026' },
+                        ]}
+                    ]}
+                ]
+            },
+            creatives: {
+                title: "Content & Ad Creatives",
+                intro: "This section details the organic content strategy and the high-impact promotional ads that will fuel the campaign. Click on any ad card to see the detailed setup parameters for Meta Ads Manager.",
+                pillars: [
+                    { name: "Productivity Hacks & Tips", desc: "Provide immediate, actionable advice to establish OptimaAI as a trusted resource." },
+                    { name: "AI in Action", desc: "Showcase the product's power by demonstrating it solving real-world problems." },
+                    { name: "User Success Stories", desc: "Build trust and social proof through authentic testimonials from local users." },
+                    { name: "Brand Story & Behind the Scenes", desc: "Humanize the brand and build an emotional connection with the audience." }
+                ],
+                ads: [
+                    { id: 'AD-01', persona: 'Student', stage: 'Aware', format: 'Reel/Story', headline: 'পরীক্ষার টেনশন? আর না।', concept: 'A student stressed about an empty notebook finds relief by instantly organizing notes with OptimaAI.', parameters: { budget: "BDT 50,000", duration: "July 1-15", objective: "Reach / Video Views", audience: "Age 18-24, interests in Dhaka University, BRAC, etc.", kpi: "Video ThruPlays, CPM" }},
+                    { id: 'AD-02', persona: 'SMB Owner', stage: 'Aware', format: 'Video', headline: 'একাই চালান পুরো ব্যবসা।', concept: 'An F-commerce owner shows how OptimaAI automates her listings and customer service.', parameters: { budget: "BDT 50,000", duration: "July 1-15", objective: "Reach / Video Views", audience: "Age 25-45, Admin of Facebook Business Page.", kpi: "Ad Recall Lift, Engagements" }},
+                    { id: 'AD-03', persona: 'Freelancer', stage: 'Subscribe', format: 'Image', headline: 'Stop Writing Proposals.', concept: 'A lead magnet ad offering a free guide with AI-powered proposal templates.', parameters: { budget: "BDT 100,000", duration: "Sep 1-30", objective: "Lead Generation", audience: "Age 22-40, interests in Upwork, Fiverr.", kpi: "Cost Per Lead (CPL)" }},
+                    { id: 'AD-04', persona: 'SMB Owner', stage: 'Convert', format: 'Carousel', headline: "আপনার ব্যবসার 'পার্সোনাল অ্যাসিস্ট্যান্ট'", concept: 'A testimonial-style carousel showcasing how OptimaAI helps with content, customer replies.', parameters: { budget: "BDT 150,000", duration: "Nov 1-30", objective: "Conversions (Sign Up)", audience: "Retargeting website visitors & leads.", kpi: "Cost Per Acquisition (CAC), ROAS" }},
+                    { id: 'AD-05', persona: 'Student', stage: 'Convert', format: 'UGC Video', headline: '৫০ পেইজের পড়া ৫ মিনিটে।', concept: 'A student films a selfie video showing how the app summarizes a 50-page PDF in seconds.', parameters: { budget: "BDT 150,000", duration: "Oct 15 - Nov 15", objective: "App Installs", audience: "Retargeting video viewers & social media engagers.", kpi: "Cost Per Install (CPI)" }},
+                    { id: 'AD-06', persona: 'All', stage: 'Convert', format: 'Image (Urgency)', headline: 'Your Special Launch Offer Ends Soon!', concept: 'A retargeting ad creating urgency with a limited-time 50% discount for early supporters.', parameters: { budget: "BDT 200,000", duration: "Dec 15-31", objective: "Conversions (Purchase)", audience: "Retargeting free trial users & cart abandoners.", kpi: "CAC, ROAS, Purchase Value" }}
+                ]
+            },
+            financials: {
+                title: "Financials & Performance Projections",
+                intro: "This section presents the financial architecture of the campaign, including a detailed budget breakdown and performance projections. The charts visualize our planned ad spend and the expected customer growth trajectory required to meet our goals.",
+                budget: {
+                    labels: ['July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [
+                        { label: 'Students', data: [167000, 200000, 267000, 300000, 300000, 350000], backgroundColor: '#F87171' },
+                        { label: 'Freelancers', data: [167000, 200000, 267000, 300000, 350000, 450000], backgroundColor: '#DC2626' },
+                        { label: 'SMBs', data: [166000, 200000, 266000, 300000, 350000, 400000], backgroundColor: '#991B1B' }
+                    ]
+                },
+                projection: {
+                    title: "Projected Cumulative Customer Growth",
+                    chartData: {
+                        labels: ['July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        datasets: [
+                            { label: 'Projected Paying Customers', data: [0, 10, 50, 200, 600, 1000], borderColor: '#DC2626', backgroundColor: '#FEF2F2', fill: true, tension: 0.4 },
+                            { label: 'Goal', data: [1000, 1000, 1000, 1000, 1000, 1000], borderColor: '#9CA3AF', borderDash: [5, 5], fill: false, pointRadius: 0 }
+                        ]
+                    }
+                },
+                breakdown: `
+                    <h3 class="text-xl font-bold text-slate-800 mb-3 mt-8">Budget & Projection Rationale</h3>
+                    <p class="text-slate-600 mb-4">The <strong>50 Lakh BDT budget</strong> is strategically back-loaded. Initial months focus on low-cost awareness and lead generation. As we build warm, high-intent audiences through retargeting lists, spending increases and shifts towards higher-cost but higher-return conversion campaigns. The goal is to spend smarter, not just harder.</p>
+                    <p class="text-slate-600">The customer projection assumes a conservative ramp-up. We expect minimal paying customers in the first two months. Growth accelerates in Month 4 as our lead nurturing efforts convert free users to paid, and scales dramatically in Months 5 and 6 when the budget is maximized for direct conversion campaigns targeting our most engaged audiences. This model is built on achieving the target <strong>5,000 BDT CAC</strong> at scale in the final quarter.</p>
+                `
+            }
+        };
+
+
+        const contentSections = { overview: document.getElementById('overview'), audience: document.getElementById('audience'), roadmap: document.getElementById('roadmap'), creatives: document.getElementById('creatives'), financials: document.getElementById('financials')};
+        const navLinks = document.querySelectorAll('.nav-link');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalClose = document.getElementById('modal-close');
+        
+        let marketChart = null, budgetChart = null, projectionChart = null;
+        
+        const renderOverview = () => {
+            const d = data.overview;
+            const statsHtml = d.stats.map(s => `<div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200"><p class="text-sm font-medium text-slate-500">${s.label}</p><p class="text-3xl font-bold text-red-600 mt-1">${s.value}</p><p class="text-xs text-slate-400 mt-1">${s.sub}</p></div>`).join('');
+            contentSections.overview.innerHTML = `
+                <div class="fade-in">
+                    <h2 class="text-3xl font-extrabold text-slate-900 mb-3">${d.title}</h2>
+                    <p class="text-lg text-slate-600 mb-8 max-w-3xl">${d.intro}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">${statsHtml}</div>
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                        <div class="lg:col-span-3 bg-white rounded-xl shadow-sm p-8 border border-slate-200">${d.marketOpportunity}</div>
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-8 border border-slate-200">
+                             <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">${d.marketVisual.title}</h3>
+                             <div class="chart-container" style="height:280px; max-height:300px;"><canvas id="market-chart"></canvas></div>
+                        </div>
+                    </div>
+                </div>`;
+            renderMarketChart(d.marketVisual.chartData);
+        };
+        
+        const renderRoadmap = () => {
+            const d = data.roadmap;
+            const timelineHtml = d.timeline.map((item, index) => `
+                <div class="roadmap-card bg-white rounded-lg p-4 border border-slate-200 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all" data-month-index="${index}">
+                    <p class="font-bold text-slate-900">${item.month}</p>
+                    <p class="text-sm text-red-600 font-semibold mt-1">Focus: ${item.focus}</p>
+                    <p class="text-sm text-slate-600 mt-2">${item.objective}</p>
+                    <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">KPIs: ${item.kpis}</p>
+                </div>
+            `).join('');
+
+            contentSections.roadmap.innerHTML = `<div class="fade-in">
+                <div class="text-center mb-8">
+                    <div class="flex items-center justify-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500 pulsing-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <h2 class="text-3xl font-extrabold text-slate-900">${d.title}</h2>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${timelineHtml}</div>
+            </div>`;
+            
+            document.querySelectorAll('.roadmap-card').forEach(card => card.addEventListener('click', (e) => {
+                const monthIndex = e.currentTarget.dataset.monthIndex;
+                const monthData = data.roadmap.timeline[monthIndex];
+                let calendarHtml = '';
+                monthData.details.forEach(weekData => {
+                    calendarHtml += `<div class="mb-6"><h4 class="text-lg font-bold text-slate-800 mb-2 border-b pb-2">Week ${weekData.week}</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-4">`;
+                    weekData.posts.forEach(post => {
+                        calendarHtml += `<div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <p class="font-bold text-sm text-red-700">${post.day} - ${post.title}</p>
+                            <p class="text-xs text-slate-600 mt-1">${post.caption}</p>
+                        </div>`;
+                    });
+                    calendarHtml += `</div></div>`;
+                });
+
+                const modalHtml = `
+                    <h3 class="text-2xl font-bold text-slate-900 mb-4">${monthData.month}: Content Calendar</h3>
+                    <div class="mt-4">${calendarHtml || '<p>Detailed plan for this month is in development.</p>'}</div>
+                `;
+                showModal(modalHtml);
+            }));
+        };
+
+        const renderCreatives = () => {
+            const d = data.creatives;
+            const pillarsHtml = d.pillars.map(pillar => `
+                <div class="bg-slate-100 rounded-lg p-4">
+                    <h4 class="font-bold text-slate-800">${pillar.name}</h4>
+                    <p class="text-sm text-slate-600">${pillar.desc}</p>
+                </div>
+            `).join('');
+
+            const adsHtml = d.ads.map((ad, index) => `
+                <div class="ad-card bg-white rounded-lg p-5 border border-slate-200 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer" data-ad-index="${index}">
+                    <div class="flex justify-between items-start">
+                        <p class="text-xs font-bold text-red-600 uppercase tracking-wider">${ad.id}</p>
+                        <span class="text-xs py-1 px-2 rounded-full bg-slate-100 text-slate-600 font-medium">${ad.persona}</span>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mt-3">${ad.headline}</h4>
+                    <p class="text-sm text-slate-600 mt-2">${ad.concept}</p>
+                </div>`).join('');
+
+            contentSections.creatives.innerHTML = `<div class="fade-in">
+                <h2 class="text-3xl font-extrabold text-slate-900 mb-3">${d.title}</h2>
+                <p class="text-lg text-slate-600 mb-8 max-w-3xl">${d.intro}</p>
+                 <div class="bg-white rounded-xl shadow-sm p-8 border border-slate-200 mb-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Core Content Pillars</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${pillarsHtml}
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Promotional Ad Concepts</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${adsHtml}</div>
+                </div>
+            </div>`;
+            
+            document.querySelectorAll('.ad-card').forEach(card => card.addEventListener('click', (e) => {
+                const adIndex = e.currentTarget.dataset.adIndex;
+                const adData = data.creatives.ads[adIndex];
+                const modalHtml = `
+                    <h3 class="text-2xl font-bold text-slate-900 mb-1">Ad Details: ${adData.id}</h3>
+                    <p class="text-sm text-slate-500 mb-4">${adData.headline}</p>
+                    <div class="space-y-3">
+                        ${Object.entries(adData.parameters).map(([key, value]) => `
+                            <div>
+                                <p class="text-xs font-bold text-slate-500 uppercase">${key}</p>
+                                <p class="text-slate-800">${value}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                showModal(modalHtml);
+            }));
+        };
+
+        const renderFinancials = () => {
+             const d = data.financials;
+             contentSections.financials.innerHTML = `
+                <div class="fade-in">
+                    <h2 class="text-3xl font-extrabold text-slate-900 mb-3">${d.title}</h2>
+                    <p class="text-lg text-slate-600 mb-8 max-w-3xl">${d.intro}</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white rounded-xl shadow-sm p-6 sm:p-8 border border-slate-200">
+                            <h3 class="text-xl font-bold text-slate-800 mb-1">6-Month Budget Allocation</h3>
+                            <p class="text-sm text-slate-500 mb-6">Total Budget: 50 Lakh BDT</p>
+                            <div class="chart-container" style="height:320px;"><canvas id="budget-chart"></canvas></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 sm:p-8 border border-slate-200">
+                            <h3 class="text-xl font-bold text-slate-800 mb-1">${d.projection.title}</h3>
+                             <p class="text-sm text-slate-500 mb-6">Goal: 1,000 Paying Customers</p>
+                            <div class="chart-container" style="height:320px;"><canvas id="projection-chart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-8 border border-slate-200 mt-8">${d.breakdown}</div>
+                </div>
+            `;
+            renderBudgetChart();
+            renderProjectionChart(d.projection.chartData);
+        };
+        
+        const renderMarketChart = (chartData) => {
+            const ctx = document.getElementById('market-chart')?.getContext('2d');
+            if(!ctx) return;
+            if (marketChart) marketChart.destroy();
+            marketChart = new Chart(ctx, { type: 'doughnut', data: chartData, options: { responsive: true, maintainAspectRatio: false }});
+        };
+        
+        const renderBudgetChart = () => {
+            const ctx = document.getElementById('budget-chart')?.getContext('2d');
+            if(!ctx) return;
+            const budgetData = JSON.parse(JSON.stringify(data.financials.budget));
+            if (budgetChart) budgetChart.destroy();
+            budgetChart = new Chart(ctx, { 
+                type: 'bar', 
+                data: budgetData, 
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                     scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, ticks: { callback: (value) => (value / 100000) + 'L' } }
+                    }
+                } 
+            });
+        };
+
+        const renderProjectionChart = (chartData) => {
+            const ctx = document.getElementById('projection-chart')?.getContext('2d');
+            if(!ctx) return;
+            if (projectionChart) projectionChart.destroy();
+            projectionChart = new Chart(ctx, { type: 'line', data: chartData, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }}}});
+        };
+
+        const showModal = (html) => {
+            modalContent.innerHTML = html;
+            modal.classList.add('visible');
+        };
+        const hideModal = () => modal.classList.remove('visible');
+        
+        modalClose.addEventListener('click', hideModal);
+        modal.addEventListener('click', (e) => { if(e.target === modal) hideModal(); });
+        
+        const renderAudienceSection = () => {
+            const sectionData = data.audience;
+            contentSections.audience.innerHTML = `
+                <div class="fade-in">
+                    <h2 class="text-3xl font-extrabold text-slate-900 mb-3">${sectionData.title}</h2>
+                    <p class="text-lg text-slate-600 mb-8 max-w-3xl">${sectionData.intro}</p>
+                    <div class="flex flex-wrap gap-3 mb-6">
+                        <button class="persona-btn text-sm font-semibold py-2 px-5 border-2 border-slate-300 rounded-full transition-all duration-200" data-persona="student">🎓 Students</button>
+                        <button class="persona-btn text-sm font-semibold py-2 px-5 border-2 border-slate-300 rounded-full transition-all duration-200" data-persona="freelancer">💼 Freelancers</button>
+                        <button class="persona-btn text-sm font-semibold py-2 px-5 border-2 border-slate-300 rounded-full transition-all duration-200" data-persona="smb">🛒 SMBs</button>
+                    </div>
+                    <div id="persona-details" class="bg-white rounded-xl shadow-sm p-8 border border-slate-200 min-h-[250px]"></div>
+                </div>`;
+            const personaBtns = contentSections.audience.querySelectorAll('.persona-btn');
+            personaBtns.forEach(btn => btn.addEventListener('click', () => updatePersona(btn.dataset.persona)));
+            updatePersona('student');
+        };
+        const updatePersona = (personaKey) => {
+            const persona = data.audience.personas[personaKey];
+            const detailsContainer = document.getElementById('persona-details');
+            if (!detailsContainer) return;
+            const detailsHtml = persona.details.map(item => `<div class="flex items-start mb-4"><span class="text-2xl mr-4 mt-1">${item.icon}</span><div><h4 class="font-bold text-slate-800">${item.label}</h4><p class="text-slate-600">${item.text}</p></div></div>`).join('');
+            detailsContainer.innerHTML = `<div class="fade-in"><p class="text-sm font-bold text-red-600 uppercase tracking-wider">${persona.title}</p><h3 class="text-2xl font-bold text-slate-900 mb-6">${persona.name}</h3>${detailsHtml}</div>`;
+            contentSections.audience.querySelectorAll('.persona-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.persona === personaKey));
+        };
+        
+        const mainUpdateContent = (hash) => {
+            const sectionKey = hash.substring(1) || 'overview';
+            Object.values(contentSections).forEach(section => section.classList.add('content-hidden'));
+            navLinks.forEach(link => link.classList.remove('active'));
+
+            const activeSection = contentSections[sectionKey];
+            const activeLink = document.querySelector(`.nav-link[href="#${sectionKey}"]`);
+            
+            if (activeSection) {
+                activeSection.classList.remove('content-hidden');
+                if (activeLink) activeLink.classList.add('active');
+
+                switch (sectionKey) {
+                    case 'overview': renderOverview(); break;
+                    case 'audience': renderAudienceSection(); break;
+                    case 'roadmap': renderRoadmap(); break;
+                    case 'creatives': renderCreatives(); break;
+                    case 'financials': renderFinancials(); break;
+                }
+            }
+        };
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const hash = this.getAttribute('href');
+                history.pushState(null, null, hash);
+                mainUpdateContent(hash);
+            });
+        });
+        window.addEventListener('popstate', () => {
+            mainUpdateContent(window.location.hash || '#overview');
+        });
+
+        mainUpdateContent(window.location.hash || '#overview');
+
+    });
+</script>
+</body>
+</html>
