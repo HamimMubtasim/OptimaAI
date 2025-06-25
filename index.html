@@ -25,7 +25,7 @@
         .nav-link.active { background-color: #FEE2E2; color: #B91C1C; }
         .persona-btn.active { border-color: #DC2626; background-color: #FEF2F2; color: #DC2626; }
         .content-hidden { display: none; }
-        .fade-in { animation: fadeIn 1.5s ease-in-out; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .nav-item .nav-text { max-width: 0; opacity: 0; transition: max-width 0.4s ease-out, opacity 0.2s ease-out, margin-left 0.4s ease-out; display: inline-block; white-space: nowrap; vertical-align: middle; }
         .nav-item:hover .nav-text { max-width: 150px; opacity: 1; margin-left: 0.75rem; }
@@ -45,7 +45,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 1.6s ease-in-out, visibility 2.6s ease-in-out;
+            transition: opacity 0.6s ease-in-out, visibility 0.6s ease-in-out;
         }
         #preloader.hidden {
             opacity: 0;
@@ -119,7 +119,7 @@
         const data = {
             overview: {
                 title: "Campaign Overview",
-                intro: "A high-level summary of the OptimaAI launch campaign in Bangladesh including the core mission, key business objectives, and the strategic financial targets that will guide all marketing activities over the next six months.",
+                intro: "This section provides a high-level summary of the OptimaAI launch campaign in Bangladesh. Here you will find the core mission, key business objectives, and the strategic financial targets that will guide all marketing activities over the next six months.",
                 stats: [
                     { label: "Paying Customers Goal", value: "1,000", sub: "by Dec 31, 2025" },
                     { label: "Target Monthly Recurring Revenue", value: "30 Lakh BDT", sub: "from Jan 2026" },
@@ -303,7 +303,7 @@
                     { id: 'AD-02', persona: 'SMB Owner', stage: 'Aware', format: 'Video', headline: 'একাই চালান পুরো ব্যবসা।', concept: 'An F-commerce owner shows how OptimaAI automates her listings and customer service.', parameters: { budget: "BDT 50,000", duration: "July 1-15", objective: "Reach / Video Views", audience: "Age 25-45, Admin of Facebook Business Page.", kpi: "Ad Recall Lift, Engagements" }},
                     { id: 'AD-03', persona: 'Freelancer', stage: 'Subscribe', format: 'Image', headline: 'Stop Writing Proposals.', concept: 'A lead magnet ad offering a free guide with AI-powered proposal templates.', parameters: { budget: "BDT 100,000", duration: "Sep 1-30", objective: "Lead Generation", audience: "Age 22-40, interests in Upwork, Fiverr.", kpi: "Cost Per Lead (CPL)" }},
                     { id: 'AD-04', persona: 'SMB Owner', stage: 'Convert', format: 'Carousel', headline: "আপনার ব্যবসার 'পার্সোনাল অ্যাসিস্ট্যান্ট'", concept: 'A testimonial-style carousel showcasing how OptimaAI helps with content, customer replies.', parameters: { budget: "BDT 150,000", duration: "Nov 1-30", objective: "Conversions (Sign Up)", audience: "Retargeting website visitors & leads.", kpi: "Cost Per Acquisition (CAC), ROAS" }},
-                    { id: 'AD-05', persona: 'Student', stage: 'Convert', format: 'UGC Video', headline: '৫০ পেইজের পড়া ৫ মিনিটে।', concept: 'A student films a selfie video showing how the OptimaAI summarizes a 50-page PDF in seconds.', parameters: { budget: "BDT 150,000", duration: "Oct 15 - Nov 15", objective: "App Installs", audience: "Retargeting video viewers & social media engagers.", kpi: "Cost Per Install (CPI)" }},
+                    { id: 'AD-05', persona: 'Student', stage: 'Convert', format: 'UGC Video', headline: '৫০ পেইজের পড়া ৫ মিনিটে।', concept: 'A student films a selfie video showing how the app summarizes a 50-page PDF in seconds.', parameters: { budget: "BDT 150,000", duration: "Oct 15 - Nov 15", objective: "App Installs", audience: "Retargeting video viewers & social media engagers.", kpi: "Cost Per Install (CPI)" }},
                     { id: 'AD-06', persona: 'All', stage: 'Convert', format: 'Image (Urgency)', headline: 'Your Special Launch Offer Ends Soon!', concept: 'A retargeting ad creating urgency with a limited-time 50% discount for early supporters.', parameters: { budget: "BDT 200,000", duration: "Dec 15-31", objective: "Conversions (Purchase)", audience: "Retargeting free trial users & cart abandoners.", kpi: "CAC, ROAS, Purchase Value" }}
                 ]
             },
